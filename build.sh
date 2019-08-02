@@ -10,6 +10,9 @@ if which pacman; then
     export CMAKE_GENERATOR='MSYS Makefiles'
     export CXXFLAGS="-D__USE_MINGW_ANSI_STDIO=1"
     export CFLAGS="$CXXFLAGS"
+    # Janky way of removing cygwin binaries from the path. These binaries can
+    # interfere with MinGW.
+    export PATH=${PATH//cygwin/}
 fi
 
 cd "$base"
@@ -20,7 +23,7 @@ if [[ ! -d "mongo-c-driver-$mongo_version" ]]; then
 fi
 cd "mongo-c-driver-$mongo_version"
 mkdir -p cmake-build; cd cmake-build
-cmake .. -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF -DCMAKE_BUILD_TYPE=Release -DENABLE_BSON=ON -DENABLE_MONGOC=OFF -DENABLE_EXAMPLES=OFF
+cmake .. -G "$CMAKE_GENERATOR" -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF -DCMAKE_BUILD_TYPE=Release -DENABLE_BSON=ON -DENABLE_MONGOC=OFF -DENABLE_EXAMPLES=OFF
 make -j4 && make install
 
 cd "$base"
@@ -30,9 +33,9 @@ if [[ ! -d "zydis-$zydis_version" ]]; then
     tar -xf "zydis-$zydis_version.tar.gz"
 fi
 cd "zydis-$zydis_version"
-cmake . -DZYDIS_BUILD_EXAMPLES=NO -DZYDIS_BUILD_TOOLS=NO
-make -j4 && make install
+cmake . -G "$CMAKE_GENERATOR" -DZYDIS_BUILD_EXAMPLES=NO -DZYDIS_BUILD_TOOLS=NO
+make -j8 && make install
 
 cd "$base"
-cmake . -DCMAKE_INSTALL_PREFIX="$DESTDIR"
-make -j4
+cmake . -G "$CMAKE_GENERATOR"
+make -j8
