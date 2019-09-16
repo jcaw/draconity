@@ -60,37 +60,43 @@ static void result_to_bson(bson_t *obj, dsx_result *result) {
     bson_append_array_end(obj, &words);
 }
 
-extern "C" int phrase_publish(void *key, dsx_end_phrase *endphrase, const char *cmd, bool hypothesis) {
-    bool accept = (endphrase->flags & 1) == 1;
-    bool ours = (endphrase->flags & 2) == 2;
-    bson_t obj = BSON_INITIALIZER;
-
+extern "C" int phrase_publish(void *key, const char *cmd, char *phrase, dsx_result *result) {
     std::shared_ptr<Grammar> grammar = draconity->get_grammar((uintptr_t)key);
-    if (grammar == NULL) goto end;
-
-    BSON_APPEND_UTF8(&obj, "cmd", cmd);
-    BSON_APPEND_UTF8(&obj, "grammar", grammar->name.c_str());
-    if ((accept && ours) || hypothesis) {
-        phrase_to_bson(&obj, endphrase->phrase);
-        result_to_bson(&obj, endphrase->result);
-        // TODO: figure out when all I should call destroy
-    } else {
-        bson_t array;
-        BSON_APPEND_ARRAY_BEGIN(&obj, "phrase", &array);
-        bson_append_array_end(&obj, &array);
+    if (grammar != NULL) {
+        bson_t obj = BSON_INITIALIZER;
+        BSON_APPEND_UTF8(&obj, "cmd", cmd);
+        BSON_APPEND_UTF8(&obj, "grammar", grammar->name.c_str());
+        if (phrase && result) {
+            phrase_to_bson(&obj, phrase);
+            result_to_bson(&obj, result);
+        } else {
+            bson_t array;
+            BSON_APPEND_ARRAY_BEGIN(&obj, "phrase", &array);
+            bson_append_array_end(&obj, &array);
+        }
+        draconity_publish_one("phrase", &obj, grammar->state.client_id);
     }
-    draconity_publish_one("phrase", &obj, grammar->state.client_id);
-end:
-    _DSXResult_Destroy(endphrase->result);
     return 0;
 }
 
 extern "C" int phrase_end(void *key, dsx_end_phrase *endphrase) {
-    return phrase_publish(key, endphrase, "p.end", false);
+    int rc = 0;
+    bool accept = (endphrase->flags & 1) == 1;
+    bool ours = (endphrase->flags & 2) == 2;
+    const char *cmd = "p.end";
+    if (accept && ours) {
+        rc = phrase_publish(key, cmd, endphrase->phrase, endphrase->result);
+    } else {
+        rc = phrase_publish(key, cmd, NULL, NULL);
+    }
+    _DSXResult_Destroy(endphrase->result);
+    return rc;
 }
 
-extern "C" int phrase_hypothesis(void *key, dsx_end_phrase *endphrase) {
-    return phrase_publish(key, endphrase, "p.hypothesis", true);
+extern "C" int phrase_hypothesis(void *key, dsx_hypothesis *hypothesis) {
+    int rc = phrase_publish(key, "p.hypothesis", hypothesis->phrase, hypothesis->result);
+    _DSXResult_Destroy(hypothesis->result);
+    return rc;
 }
 
 extern "C" int phrase_begin(void *key, void *data) {
