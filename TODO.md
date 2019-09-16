@@ -4,7 +4,7 @@ Tasks remaining.
 
 ## Immediate
 
-- [ ] Fix crash when `_DSXResult_BestPathWord` is called on recognition.
+- [x] Fix crash when `_DSXResult_BestPathWord` is called on recognition.
 - [ ] Remove foreign grammar functionality (replace later if needed)
 
 ## Later
