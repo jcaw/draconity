@@ -40,6 +40,10 @@ DLAPI int (*_DSXEngine_Pause)(drg_engine *engine);
 DLAPI int (*_DSXEngine_Resume)(drg_engine *engine, uint64_t token);
 DLAPI int (*_DSXEngine_ResumeRecognition)(drg_engine *engine);
 
+DLAPI int (*_DSXEngine_SourceFileNameSet)(drg_engine *engine, int flags, const char *filename);
+DLAPI int (*_DSXEngine_SourceEnableSet)(drg_engine *engine, bool enable);
+DLAPI int (*_DSXEngine_SourceFileClose)(drg_engine *engine);
+
 DLAPI int (*_DSXFileSystem_PreferenceSetValue)(drg_filesystem *fs, char *a, char *b, char *c, char *d);
 DLAPI int (*_DSXFileSystem_PreferenceGetValue)(drg_filesystem *fs, char *a, char *b, char *c, char *d);
 

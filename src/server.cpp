@@ -104,7 +104,7 @@ static bson_t *handle_message(uint64_t client_id, uint32_t tid, const std::vecto
     std::ostringstream errstream;
     std::string errmsg = "";
 
-    char *cmd = NULL, *name = NULL, *state = NULL;
+    char *cmd = NULL, *name = NULL, *state = NULL, *filename = NULL;
     bool exclusive = false;
     int priority = 0, counter;
     // Dragon won't supply a pause token of 0, so 0 implies no token.
@@ -130,6 +130,8 @@ static bson_t *handle_message(uint64_t client_id, uint32_t tid, const std::vecto
                 name = bson_iter_dup_utf8(&iter, NULL);
             } else if (streq(key, "state") && BSON_ITER_HOLDS_UTF8(&iter)) {
                 state = bson_iter_dup_utf8(&iter, NULL);
+            } else if (streq(key, "filename") && BSON_ITER_HOLDS_UTF8(&iter)) {
+                filename = bson_iter_dup_utf8(&iter, NULL);
             } else if (streq(key, "exclusive") && BSON_ITER_HOLDS_BOOL(&iter)) {
                 exclusive = bson_iter_bool(&iter);
                 has_exclusive = true;
@@ -340,6 +342,37 @@ static bson_t *handle_message(uint64_t client_id, uint32_t tid, const std::vecto
             // When Dragon is paused, we sync immediately (this allows the
             // client to correct errors before unpausing).
             draconity->sync_state();
+        }
+        resp = success_msg();
+        goto end;
+    } else if (cmd[0] == 'f') {
+        int rc;
+        if (streq(cmd, "f.open")) {
+            if (!draconity->ready) goto not_ready;
+
+            if (!filename || !strlen(filename)) {
+                errmsg = "filename must be set";
+                goto end;
+            }
+            if ((rc = _DSXEngine_SourceFileNameSet(_engine, 0, filename))) {
+                errstream << "error opening file: " << rc;
+                errmsg = errstream.str();
+                goto end;
+            }
+            if ((rc = _DSXEngine_SourceEnableSet(_engine, 1))) {
+                errstream << "error enabling file source: " << rc;
+                errmsg = errstream.str();
+                goto end;
+            }
+        } else if (streq(cmd, "f.close")) {
+            if (!draconity->ready) goto not_ready;
+            if ((rc = _DSXEngine_SourceFileClose(_engine))) {
+                errstream << "error closing file: " << rc;
+                errmsg = errstream.str();
+                goto end;
+            }
+        } else {
+            goto unsupported_command;
         }
         resp = success_msg();
         goto end;

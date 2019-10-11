@@ -250,6 +250,10 @@ static std::list<SymbolLoad> server_syms {
     s(DSXEngine_GetParam),
     s(DSXEngine_DestroyParam),
 
+    s(DSXEngine_SourceFileNameSet),
+    s(DSXEngine_SourceEnableSet),
+    s(DSXEngine_SourceFileClose),
+
     s(DSXFileSystem_PreferenceGetValue),
     s(DSXFileSystem_PreferenceSetValue),
     s(DSXFileSystem_SetResultsDirectory),
